@@ -50,7 +50,7 @@ def jwt_token_required(f):
             response = jsonify(message='Token has expired')
             response.status_code = status.HTTP_401_UNAUTHORIZED
             return response
-        g.user = User.objects.get(id=ObjectId(payload['sub']))
+        request.user = User.objects.get(id=ObjectId(payload['sub']))
         return f(*args, **kwargs)
 
     return decorated_function
@@ -87,6 +87,7 @@ class SignInAPI(SignUpAPI):
         if user.verify_password(password):
             token = create_token(user)
             return {'token': token}, status.HTTP_200_OK
+        return {"message": "Invalid username/password"}, status.HTTP_401_UNAUTHORIZED
 
 
 class ChangePasswordAPI(restful.Resource):
@@ -101,7 +102,7 @@ class ChangePasswordAPI(restful.Resource):
 
     def patch(self):
         req_kwargs = self.reqparse.parse_args()
-        user = getattr(g, 'user', None)
+        user = request.user
         old_password = req_kwargs['old_password']
         new_password = req_kwargs['new_password']
         new_password_confirm = req_kwargs['new_password_confirm']
@@ -118,7 +119,7 @@ class ProtectedUrlAPI(restful.Resource):
     method_decorators = [jwt_token_required]
 
     def get(self):
-        user = getattr(g, 'user', None)
+        user = request.user
         return {'message': 'Hi {}, you got protected data'.format(user.email)}, status.HTTP_200_OK
 
 
